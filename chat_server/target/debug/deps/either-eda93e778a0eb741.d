@@ -1,0 +1,11 @@
+/Users/guannan/projects/rust/chat/target/debug/deps/libeither-eda93e778a0eb741.rmeta: /Users/guannan/.cargo/registry/src/index.crates.io-6f17d22bba15001f/either-1.13.0/src/lib.rs /Users/guannan/.cargo/registry/src/index.crates.io-6f17d22bba15001f/either-1.13.0/src/serde_untagged.rs /Users/guannan/.cargo/registry/src/index.crates.io-6f17d22bba15001f/either-1.13.0/src/serde_untagged_optional.rs /Users/guannan/.cargo/registry/src/index.crates.io-6f17d22bba15001f/either-1.13.0/src/iterator.rs /Users/guannan/.cargo/registry/src/index.crates.io-6f17d22bba15001f/either-1.13.0/src/into_either.rs
+
+/Users/guannan/projects/rust/chat/target/debug/deps/libeither-eda93e778a0eb741.rlib: /Users/guannan/.cargo/registry/src/index.crates.io-6f17d22bba15001f/either-1.13.0/src/lib.rs /Users/guannan/.cargo/registry/src/index.crates.io-6f17d22bba15001f/either-1.13.0/src/serde_untagged.rs /Users/guannan/.cargo/registry/src/index.crates.io-6f17d22bba15001f/either-1.13.0/src/serde_untagged_optional.rs /Users/guannan/.cargo/registry/src/index.crates.io-6f17d22bba15001f/either-1.13.0/src/iterator.rs /Users/guannan/.cargo/registry/src/index.crates.io-6f17d22bba15001f/either-1.13.0/src/into_either.rs
+
+/Users/guannan/projects/rust/chat/target/debug/deps/either-eda93e778a0eb741.d: /Users/guannan/.cargo/registry/src/index.crates.io-6f17d22bba15001f/either-1.13.0/src/lib.rs /Users/guannan/.cargo/registry/src/index.crates.io-6f17d22bba15001f/either-1.13.0/src/serde_untagged.rs /Users/guannan/.cargo/registry/src/index.crates.io-6f17d22bba15001f/either-1.13.0/src/serde_untagged_optional.rs /Users/guannan/.cargo/registry/src/index.crates.io-6f17d22bba15001f/either-1.13.0/src/iterator.rs /Users/guannan/.cargo/registry/src/index.crates.io-6f17d22bba15001f/either-1.13.0/src/into_either.rs
+
+/Users/guannan/.cargo/registry/src/index.crates.io-6f17d22bba15001f/either-1.13.0/src/lib.rs:
+/Users/guannan/.cargo/registry/src/index.crates.io-6f17d22bba15001f/either-1.13.0/src/serde_untagged.rs:
+/Users/guannan/.cargo/registry/src/index.crates.io-6f17d22bba15001f/either-1.13.0/src/serde_untagged_optional.rs:
+/Users/guannan/.cargo/registry/src/index.crates.io-6f17d22bba15001f/either-1.13.0/src/iterator.rs:
+/Users/guannan/.cargo/registry/src/index.crates.io-6f17d22bba15001f/either-1.13.0/src/into_either.rs:
