@@ -1,0 +1,25 @@
+### chat api
+
+GET http://localhost:6688/api/chat
+
+### chat signup
+
+POST http://localhost:6688/api/signup
+Content-Type: application/json
+
+{
+  "fullname": "Gnli",
+  "email": "gnli@gmail.com",
+  "password": "123456"
+}
+
+### chat signin
+
+POST http://localhost:6688/api/signin
+Content-Type: application/json
+
+{
+  "fullname": "Gnli",
+  "email": "gnli@gmail.com",
+  "password": "123456"
+}

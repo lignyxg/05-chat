@@ -17,7 +17,6 @@ async fn main() -> anyhow::Result<()> {
     let addr = format!("0.0.0.0:{}", config.server.port);
     let listener = TcpListener::bind(&addr).await?;
     info!("Listening on: {}", addr);
-
-    axum::serve(listener, get_router(config)).await?;
+    axum::serve(listener, get_router(config).await).await?;
     Ok(())
 }

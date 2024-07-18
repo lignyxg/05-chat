@@ -4,7 +4,7 @@ use sqlx::FromRow;
 
 mod users;
 
-#[derive(Debug, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, PartialEq)]
 pub struct User {
     pub id: i64,
     pub fullname: String,
@@ -14,4 +14,17 @@ pub struct User {
     pub password_hash: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CreateUser {
+    pub fullname: String,
+    pub email: String,
+    pub password: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SigninUser {
+    pub email: String,
+    pub password: String,
 }
