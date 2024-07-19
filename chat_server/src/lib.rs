@@ -2,18 +2,19 @@ use std::fmt::Debug;
 use std::ops::Deref;
 use std::sync::Arc;
 
+use axum::middleware::from_fn_with_state;
 use axum::response::IntoResponse;
 use axum::routing::{get, patch, post};
 use axum::Router;
 use jwt_simple::prelude::ES256KeyPair;
 use sqlx::PgPool;
-use tower_http::trace::{DefaultMakeSpan, DefaultOnRequest, DefaultOnResponse, TraceLayer};
-use tower_http::LatencyUnit;
-use tracing::{info, Level};
+use tracing::info;
 
 pub use config::AppConfig;
 use handlers::*;
 
+use crate::middlewares::jwt::jwt_verify;
+use crate::middlewares::with_middleware;
 use crate::utils::jwt::JwtSigner;
 
 mod config;
@@ -38,16 +39,6 @@ pub async fn get_router(config: AppConfig) -> Router {
     let state = ChatState::new(config).await;
 
     let api = Router::new()
-        .layer(
-            TraceLayer::new_for_http()
-                .make_span_with(DefaultMakeSpan::new().include_headers(true))
-                .on_request(DefaultOnRequest::new().level(Level::INFO))
-                .on_response(
-                    DefaultOnResponse::new()
-                        .level(Level::INFO)
-                        .latency_unit(LatencyUnit::Micros),
-                ),
-        )
         .route("/chat", get(list_chat_handler).post(create_chat_handler))
         .route(
             "/chat/:id",
@@ -56,13 +47,16 @@ pub async fn get_router(config: AppConfig) -> Router {
                 .post(send_message_handler),
         )
         .route("/chat/:id/messages", get(list_messages_handler))
+        .layer(from_fn_with_state(state.clone(), jwt_verify))
         .route("/signup", post(signup_handler))
         .route("/signin", post(signin_handler));
 
-    Router::new()
+    let router = Router::new()
         .route("/", get(index_handler))
         .nest("/api", api)
-        .with_state(state)
+        .with_state(state);
+
+    with_middleware(router)
 }
 
 impl Deref for ChatState {

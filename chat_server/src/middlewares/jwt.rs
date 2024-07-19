@@ -1,9 +1,13 @@
-use axum::extract::Request;
+use axum::extract::{FromRequestParts, Request, State};
+use axum::http::StatusCode;
 use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
+use axum_extra::headers::authorization::Bearer;
+use axum_extra::headers::Authorization;
+use axum_extra::TypedHeader;
+use tracing::warn;
 
-use crate::error::AppError;
-use crate::error::AppError::Unauthorized;
+use crate::ChatState;
 
 /*
     two ways to write middleware:
@@ -12,15 +16,28 @@ use crate::error::AppError::Unauthorized;
     2. use tower::Service and tower::layer
 */
 
-#[allow(unused)]
-pub(crate) async fn mid_verify(req: Request, _next: Next) -> Result<impl IntoResponse, AppError> {
-    let token = req
-        .headers()
-        .get("x-auth-token")
-        .and_then(|it| it.to_str().ok());
+pub(crate) async fn jwt_verify(
+    State(state): State<ChatState>,
+    req: Request,
+    next: Next,
+) -> Response {
+    // get token from request, if none, return 401
+    let (mut parts, body) = req.into_parts();
+    let token =
+        match TypedHeader::<Authorization<Bearer>>::from_request_parts(&mut parts, &state).await {
+            Ok(TypedHeader(Authorization(bearer))) => bearer.token().to_string(),
+            Err(e) => {
+                warn!("error: {}", e);
+                return (StatusCode::BAD_REQUEST, "bad request").into_response();
+            }
+        };
 
-    if token.is_none() || token.unwrap().is_empty() {
-        return Err::<Response, AppError>(Unauthorized("token not found".to_string()));
+    let mut req = Request::from_parts(parts, body);
+    match state.jwt_signer.verify(&token) {
+        Ok(user) => {
+            req.extensions_mut().insert(user);
+            next.run(req).await
+        }
+        Err(_) => (StatusCode::UNAUTHORIZED, "verify token failed").into_response(),
     }
-    todo!()
 }

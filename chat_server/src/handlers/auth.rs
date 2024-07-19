@@ -16,7 +16,7 @@ pub(crate) async fn signin_handler(
 ) -> Result<impl IntoResponse, AppError> {
     match User::verify_password(&email, &password, &state.pool).await {
         Ok(Some(user)) => {
-            let token = state.jwt_signer.sign(user.into())?;
+            let token = state.jwt_signer.sign(user)?;
             info!("user {} signed in", email);
             Ok((StatusCode::OK, Json(AuthToken { token })).into_response())
         }
@@ -35,7 +35,7 @@ pub(crate) async fn signup_handler(
 ) -> Result<impl IntoResponse, AppError> {
     let email = &create_user.email.clone();
     let user = User::create(create_user, &state.pool).await?;
-    let token = state.jwt_signer.sign(user.into())?;
+    let token = state.jwt_signer.sign(user)?;
     info!("user {} signed up", email);
     Ok((StatusCode::CREATED, Json(AuthToken { token })))
 }
@@ -43,21 +43,6 @@ pub(crate) async fn signup_handler(
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct AuthToken {
     token: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub(crate) struct AuthUser {
-    pub(crate) user_id: u64,
-    pub(crate) email: String,
-}
-
-impl From<User> for AuthUser {
-    fn from(user: User) -> Self {
-        Self {
-            user_id: user.id as _,
-            email: user.email,
-        }
-    }
 }
 
 #[cfg(test)]
@@ -73,15 +58,12 @@ mod tests {
     #[tokio::test]
     async fn test_jwt_sign_verify() {
         let signer = JwtSigner::load("./fixtures/pkcs8.pem").expect("Failed to load ek.pem");
-        let user = AuthUser {
-            user_id: 1,
-            email: "test".to_string(),
-        };
+        let user = User::new(1, "lign".to_string(), "testlign@gmail.com".to_string());
         let token = signer.sign(user.clone()).unwrap();
         eprintln!("token: {}", token);
 
-        let res = signer.verify(&token, user).unwrap();
-        assert!(res);
+        let res = signer.verify(&token).unwrap();
+        assert_eq!(res, user);
     }
 
     #[tokio::test]

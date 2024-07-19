@@ -107,6 +107,20 @@ impl User {
 }
 
 #[cfg(test)]
+impl User {
+    pub fn new(id: i64, fullname: String, email: String) -> Self {
+        Self {
+            id,
+            fullname,
+            email,
+            password_hash: None,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        }
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use std::path::Path;
 

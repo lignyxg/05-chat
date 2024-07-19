@@ -1,20 +1,14 @@
-### chat api
-
-GET http://localhost:6688/api/chat
-
-### chat signup
-
+### user signup
 POST http://localhost:6688/api/signup
 Content-Type: application/json
 
 {
-  "fullname": "Gnli",
-  "email": "gnli@gmail.com",
+  "fullname": "Alice1",
+  "email": "alice1@gmail.com",
   "password": "123456"
 }
 
-### chat signin
-
+### user signin
 POST http://localhost:6688/api/signin
 Content-Type: application/json
 
@@ -23,3 +17,11 @@ Content-Type: application/json
   "email": "gnli@gmail.com",
   "password": "123456"
 }
+
+> {%
+    client.global.set("auth_token", response.body.token);
+%}
+
+### chat api
+GET http://localhost:6688/api/chat
+Authorization: Bearer {{auth_token}}
