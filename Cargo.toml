@@ -1,7 +1,8 @@
 [workspace]
 members = [
-    "chat_server"
-    , "notify_server"]
+    "chat_server",
+    "notify_server"
+]
 resolver = "2"
 
 [workspace.dependencies]

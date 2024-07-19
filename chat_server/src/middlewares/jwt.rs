@@ -41,3 +41,68 @@ pub(crate) async fn jwt_verify(
         Err(_) => (StatusCode::UNAUTHORIZED, "verify token failed").into_response(),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use axum::body::Body;
+    use axum::middleware::from_fn_with_state;
+    use axum::routing::get;
+    use axum::Router;
+    use tower::ServiceExt;
+
+    use crate::models::User;
+    use crate::AppConfig;
+
+    use super::*;
+
+    async fn handler() -> impl IntoResponse {
+        "handler"
+    }
+
+    #[tokio::test]
+    async fn test_jwt_verify_middleware() -> anyhow::Result<()> {
+        let (state, _tdb) = ChatState::new_for_test(AppConfig::load()?).await;
+        let app = Router::new()
+            .route("/", get(handler))
+            .layer(from_fn_with_state(state.clone(), jwt_verify));
+
+        let user = User::new(1, "lign".to_string(), "testlign@gmail.com".to_string());
+        let token = state.jwt_signer.sign(user)?;
+        // happy path
+        let res = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/")
+                    .header("Authorization", format!("Bearer {}", token))
+                    .body(Body::empty())?,
+            )
+            .await?;
+        assert_eq!(res.status(), StatusCode::OK);
+
+        // bad request
+        let res = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/")
+                    .header("Authorization", "Bad request")
+                    .body(Body::empty())?,
+            )
+            .await?;
+        assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+
+        // unauthorized
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .uri("/")
+                    .header("Authorization", format!("Bearer {}", "bad token"))
+                    .body(Body::empty())?,
+            )
+            .await?;
+        assert_eq!(res.status(), StatusCode::UNAUTHORIZED);
+
+        Ok(())
+    }
+}
