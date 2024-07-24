@@ -19,7 +19,7 @@ CREATE TYPE chat_type AS ENUM('single', 'group', 'private_channel', 'public_chan
 -- create chat table
 CREATE TABLE IF NOT EXISTS chats(
     id bigserial PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
+    name VARCHAR(255),
     type chat_type NOT NULL,
     members bigint[] NOT NULL,
     created_at timestamptz NOT NULL DEFAULT NOW(),

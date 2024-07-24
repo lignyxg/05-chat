@@ -66,7 +66,7 @@ mod tests {
             .route("/", get(handler))
             .layer(from_fn_with_state(state.clone(), jwt_verify));
 
-        let user = User::new(1, "lign".to_string(), "testlign@gmail.com".to_string());
+        let user = User::new(1, 0, "lign".to_string(), "testlign@gmail.com".to_string());
         let token = state.jwt_signer.sign(user)?;
         // happy path
         let res = app

@@ -20,6 +20,10 @@ pub enum AppError {
     IOError(#[from] std::io::Error),
     #[error("email already exists: {0}")]
     EmailAlreadyExists(String),
+    #[error("serde json error: {0}")]
+    SerdeJsonError(#[from] serde_json::Error),
+    #[error("create chat error: {0}")]
+    CreateChatError(String),
 }
 
 impl IntoResponse for AppError {
@@ -32,6 +36,8 @@ impl IntoResponse for AppError {
             AppError::JwtError(_) => StatusCode::UNPROCESSABLE_ENTITY,
             AppError::IOError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::EmailAlreadyExists(_) => StatusCode::CONFLICT,
+            AppError::SerdeJsonError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::CreateChatError(_) => StatusCode::BAD_REQUEST,
         };
 
         (status, Json(ErrorInfo::new(self.to_string()))).into_response()

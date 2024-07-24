@@ -39,6 +39,11 @@ pub async fn get_router(config: AppConfig) -> Router {
     let state = ChatState::new(config).await;
 
     let api = Router::new()
+        .route(
+            "/workspaces",
+            get(list_workspace_handler).post(create_workspace_handler),
+        )
+        .route("/users", get(list_users_handler))
         .route("/chat", get(list_chat_handler).post(create_chat_handler))
         .route(
             "/chat/:id",
@@ -98,26 +103,49 @@ pub(crate) async fn index_handler() -> impl IntoResponse {
 }
 
 #[cfg(test)]
-impl ChatState {
-    pub async fn new_for_test(config: AppConfig) -> (Self, sqlx_db_tester::TestPg) {
-        use sqlx_db_tester::TestPg;
+mod test_util {
+    use sqlx::Executor;
+    use sqlx_db_tester::TestPg;
 
-        let server_url = config.db_url.rsplitn(2, "/").collect::<Vec<_>>();
-        let server_url = server_url[1].to_string();
-        eprintln!("server_url: {}", server_url);
-        let tdb = TestPg::new(server_url, std::path::Path::new("../migrations"));
+    use super::*;
+
+    impl ChatState {
+        pub async fn new_for_test(config: AppConfig) -> (Self, TestPg) {
+            let server_url = config.db_url.rsplitn(2, "/").collect::<Vec<_>>();
+            let server_url = server_url[1].to_string();
+            eprintln!("server_url: {}", server_url);
+            let tdb = TestPg::new(server_url, std::path::Path::new("../migrations"));
+            let pool = tdb.get_pool().await;
+            let jwt_signer = JwtSigner::new(
+                ES256KeyPair::from_pem(&config.auth.sk).expect("Failed to create jwt signer"),
+            );
+
+            let state = Self {
+                inner: Arc::new(ChatStateInner {
+                    config,
+                    pool,
+                    jwt_signer,
+                }),
+            };
+            (state, tdb)
+        }
+    }
+
+    pub async fn get_test_pool(url: Option<&str>) -> (PgPool, TestPg) {
+        let url = url.unwrap_or("postgres://postgres:postgres@localhost:5432");
+        let tdb = TestPg::new(url.to_string(), std::path::Path::new("../migrations"));
         let pool = tdb.get_pool().await;
-        let jwt_signer = JwtSigner::new(
-            ES256KeyPair::from_pem(&config.auth.sk).expect("Failed to create jwt signer"),
-        );
 
-        let state = Self {
-            inner: Arc::new(ChatStateInner {
-                config,
-                pool,
-                jwt_signer,
-            }),
-        };
-        (state, tdb)
+        let sqls = include_str!("../fixtures/test.sql").split(";");
+        let mut tx = pool.begin().await.expect("Failed to begin transaction");
+        for sql in sqls {
+            if sql.trim().is_empty() {
+                continue;
+            }
+            tx.execute(sql).await.expect("Failed to execute sql");
+        }
+        tx.commit().await.expect("Failed to commit transaction");
+
+        (pool, tdb)
     }
 }

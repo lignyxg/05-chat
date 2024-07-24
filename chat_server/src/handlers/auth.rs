@@ -58,7 +58,7 @@ mod tests {
     #[tokio::test]
     async fn test_jwt_sign_verify() {
         let signer = JwtSigner::load("./fixtures/pkcs8.pem").expect("Failed to load ek.pem");
-        let user = User::new(1, "lign".to_string(), "testlign@gmail.com".to_string());
+        let user = User::new(1, 0, "lign".to_string(), "testlign@gmail.com".to_string());
         let token = signer.sign(user.clone()).unwrap();
         eprintln!("token: {}", token);
 
@@ -70,6 +70,7 @@ mod tests {
     async fn test_signup_handler() -> Result<()> {
         let (state, _tdb) = ChatState::new_for_test(AppConfig::load().unwrap()).await;
         let create_user = CreateUser {
+            ws_name: "test_ws".to_string(),
             fullname: "lign".to_string(),
             email: "testlign@gmail.com".to_string(),
             password: "password123".to_string(),
@@ -88,6 +89,7 @@ mod tests {
     async fn test_signin_handler() {
         let (state, _tdb) = ChatState::new_for_test(AppConfig::load().unwrap()).await;
         let create_user = CreateUser {
+            ws_name: "test_ws".to_string(),
             fullname: "lign".to_string(),
             email: "testlign@gmail.com".to_string(),
             password: "password123".to_string(),

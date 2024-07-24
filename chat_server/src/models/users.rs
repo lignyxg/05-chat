@@ -1,28 +1,54 @@
 use argon2::password_hash::{rand_core::OsRng, SaltString};
 use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use sqlx::{query_as, PgPool};
+use tracing::info;
 
 use crate::error::AppError;
-use crate::models::{CreateUser, User};
+use crate::models::{CreateUser, CreateWorkspace, User, Workspace};
 
 impl User {
     pub async fn create(create_user: CreateUser, pool: &PgPool) -> Result<Self, AppError> {
         if let Some(user) = Self::find_user_by_email(&create_user.email, pool).await? {
             return Err(AppError::EmailAlreadyExists(user.email));
         }
+        let ws = match Workspace::find_workspace_by_name(&create_user.ws_name, pool).await? {
+            Some(ws) => ws,
+            None => {
+                let ws = Workspace::create(
+                    CreateWorkspace {
+                        name: create_user.ws_name,
+                        owner_id: 0,
+                    },
+                    pool,
+                )
+                .await?;
+                info!("workspace {} created", ws.name);
+                ws
+            }
+        };
+
         let password_hash = Self::hash_password(&create_user.password)?;
-        let user = sqlx::query_as(
+        let user: User = sqlx::query_as(
             r#"
-            INSERT INTO users (fullname, email, password_hash)
-            VALUES ($1, $2, $3)
+            INSERT INTO users (ws_id, fullname, email, password_hash)
+            VALUES ($1, $2, $3, $4)
             RETURNING *
             "#,
         )
+        .bind(ws.id)
         .bind(create_user.fullname)
         .bind(create_user.email)
         .bind(password_hash)
         .fetch_one(pool)
         .await?;
+
+        if ws.owner_id == 0 {
+            Workspace::update_owner(&ws.name, &user.email, pool).await?;
+            info!(
+                "workspace {} owner updated([super admin] => [{}])",
+                ws.name, user.fullname
+            );
+        }
 
         Ok(user)
     }
@@ -104,13 +130,44 @@ impl User {
             Ok(None)
         }
     }
+
+    pub async fn list_users_by_workspace(ws_id: i64, pool: &PgPool) -> Result<Vec<Self>, AppError> {
+        let users = query_as(
+            r#"
+            SELECT *
+            FROM users
+            WHERE ws_id = $1
+            "#,
+        )
+        .bind(ws_id)
+        .fetch_all(pool)
+        .await?;
+
+        Ok(users)
+    }
+
+    pub async fn find_user_by_ids(ids: &[i64], pool: &PgPool) -> Result<Vec<Self>, AppError> {
+        let users = query_as(
+            r#"
+            SELECT *
+            FROM users
+            WHERE id = ANY($1)
+            "#,
+        )
+        .bind(ids)
+        .fetch_all(pool)
+        .await?;
+
+        Ok(users)
+    }
 }
 
 #[cfg(test)]
 impl User {
-    pub fn new(id: i64, fullname: String, email: String) -> Self {
+    pub fn new(id: i64, ws_id: i64, fullname: String, email: String) -> Self {
         Self {
             id,
+            ws_id,
             fullname,
             email,
             password_hash: None,
@@ -122,29 +179,27 @@ impl User {
 
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
-
-    use sqlx_db_tester::TestPg;
+    use crate::test_util::get_test_pool;
 
     use super::*;
 
     #[tokio::test]
     async fn test_create_get_user() {
-        let db = TestPg::new(
-            "postgres://postgres:postgres@localhost:5432".to_string(),
-            Path::new("../migrations"),
-        );
-        let pool = db.get_pool().await;
+        let (pool, _tdb) = get_test_pool(None).await;
+
         let name = "lign";
         let email = "testlign@gmail.com";
         let pwd = "password123";
+        let ws_name = "test_ws";
 
         let create_user = CreateUser {
+            ws_name: ws_name.to_string(),
             fullname: name.to_string(),
             email: email.to_string(),
             password: pwd.to_string(),
         };
         let user = User::create(create_user, &pool).await.unwrap();
+
         assert_eq!(
             User::verify_password(email, pwd, &pool).await.unwrap(),
             Some(user.clone())
