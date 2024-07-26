@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 pub struct AppConfig {
     pub server: ServerConfig,
     pub db_url: String,
+    pub base_url: String,
     pub auth: AuthConfig,
 }
 #[derive(Debug, Serialize, Deserialize)]

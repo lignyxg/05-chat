@@ -13,6 +13,7 @@ use tracing::info;
 pub use config::AppConfig;
 use handlers::*;
 
+use crate::middlewares::chat_member::verify_chat_member;
 use crate::middlewares::jwt::jwt_verify;
 use crate::middlewares::with_middleware;
 use crate::utils::jwt::JwtSigner;
@@ -31,12 +32,23 @@ pub(crate) struct ChatState {
 
 pub(crate) struct ChatStateInner {
     pub(crate) config: AppConfig,
-    pub(crate) pool: sqlx::PgPool,
+    pub(crate) pool: PgPool,
     pub(crate) jwt_signer: JwtSigner,
 }
 
 pub async fn get_router(config: AppConfig) -> Router {
     let state = ChatState::new(config).await;
+
+    let chat = Router::new()
+        .route(
+            "/:id",
+            patch(update_chat_handler)
+                .delete(delete_chat_handler)
+                .post(send_message_handler),
+        )
+        .route("/:id/messages", get(list_messages_handler))
+        .layer(from_fn_with_state(state.clone(), verify_chat_member))
+        .route("/", get(list_chat_handler).post(create_chat_handler));
 
     let api = Router::new()
         .route(
@@ -44,14 +56,9 @@ pub async fn get_router(config: AppConfig) -> Router {
             get(list_workspace_handler).post(create_workspace_handler),
         )
         .route("/users", get(list_users_handler))
-        .route("/chat", get(list_chat_handler).post(create_chat_handler))
-        .route(
-            "/chat/:id",
-            patch(update_chat_handler)
-                .delete(delete_chat_handler)
-                .post(send_message_handler),
-        )
-        .route("/chat/:id/messages", get(list_messages_handler))
+        .nest("/chat", chat)
+        .route("/files", post(upload_file_handler))
+        .route("/download/*url", get(download_file_handler))
         .layer(from_fn_with_state(state.clone(), jwt_verify))
         .route("/signup", post(signup_handler))
         .route("/signin", post(signin_handler));
@@ -111,7 +118,7 @@ mod test_util {
 
     impl ChatState {
         pub async fn new_for_test(config: AppConfig) -> (Self, TestPg) {
-            let server_url = config.db_url.rsplitn(2, "/").collect::<Vec<_>>();
+            let server_url = config.db_url.rsplitn(2, '/').collect::<Vec<_>>();
             let server_url = server_url[1].to_string();
             eprintln!("server_url: {}", server_url);
             let tdb = TestPg::new(server_url, std::path::Path::new("../migrations"));
@@ -136,7 +143,7 @@ mod test_util {
         let tdb = TestPg::new(url.to_string(), std::path::Path::new("../migrations"));
         let pool = tdb.get_pool().await;
 
-        let sqls = include_str!("../fixtures/test.sql").split(";");
+        let sqls = include_str!("../fixtures/test.sql").split(';');
         let mut tx = pool.begin().await.expect("Failed to begin transaction");
         for sql in sqls {
             if sql.trim().is_empty() {
@@ -147,5 +154,17 @@ mod test_util {
         tx.commit().await.expect("Failed to commit transaction");
 
         (pool, tdb)
+    }
+
+    pub async fn prepare_test_data(pool: &PgPool) {
+        let sqls = include_str!("../fixtures/test.sql").split(';');
+        let mut tx = pool.begin().await.expect("Failed to begin transaction");
+        for sql in sqls {
+            if sql.trim().is_empty() {
+                continue;
+            }
+            tx.execute(sql).await.expect("Failed to execute sql");
+        }
+        tx.commit().await.expect("Failed to commit transaction");
     }
 }

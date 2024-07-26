@@ -1,4 +1,5 @@
 use axum::extract::{Path, State};
+use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::{Extension, Json};
 
@@ -20,7 +21,7 @@ pub(crate) async fn create_chat_handler(
     Json(create_chat): Json<CreateChat>,
 ) -> Result<impl IntoResponse, AppError> {
     let chat = Chat::create(create_chat, user.ws_id, user.id, &state.pool).await?;
-    Ok(Json(chat))
+    Ok((StatusCode::CREATED, Json(chat)))
 }
 
 pub(crate) async fn delete_chat_handler(

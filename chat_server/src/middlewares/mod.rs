@@ -9,6 +9,7 @@ use tracing::Level;
 use crate::middlewares::request_id::with_request_id;
 use crate::middlewares::server_time::ServerTimeLayer;
 
+pub(crate) mod chat_member;
 pub(crate) mod jwt;
 mod request_id;
 mod server_time;

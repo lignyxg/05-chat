@@ -1,3 +1,4 @@
+use axum::extract::multipart::MultipartError;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
@@ -24,6 +25,14 @@ pub enum AppError {
     SerdeJsonError(#[from] serde_json::Error),
     #[error("create chat error: {0}")]
     CreateChatError(String),
+    #[error("{0}")]
+    CreateFileError(String),
+    #[error("multipart error: {0}")]
+    MultiPartError(#[from] MultipartError),
+    #[error("invalid header value: {0}")]
+    InvalidHeaderValue(#[from] axum::http::header::InvalidHeaderValue),
+    #[error("parse error: {0}")]
+    ParseError(String),
 }
 
 impl IntoResponse for AppError {
@@ -38,6 +47,10 @@ impl IntoResponse for AppError {
             AppError::EmailAlreadyExists(_) => StatusCode::CONFLICT,
             AppError::SerdeJsonError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::CreateChatError(_) => StatusCode::BAD_REQUEST,
+            AppError::CreateFileError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::MultiPartError(_) => StatusCode::BAD_REQUEST,
+            AppError::InvalidHeaderValue(_) => StatusCode::BAD_REQUEST,
+            AppError::ParseError(_) => StatusCode::BAD_REQUEST,
         };
 
         (status, Json(ErrorInfo::new(self.to_string()))).into_response()

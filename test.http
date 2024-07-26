@@ -4,8 +4,8 @@ Content-Type: application/json
 
 {
   "ws_name": "testgn",
-  "fullname": "Gnli1",
-  "email": "gnli1@gmail.com",
+  "fullname": "Gnlign",
+  "email": "gnlign@gmail.com",
   "password": "123456"
 }
 
@@ -23,14 +23,64 @@ Content-Type: application/json
     client.global.set("auth_token", response.body.token);
 %}
 
-### chat api
-GET http://localhost:6688/api/chat
-Authorization: Bearer {{auth_token}}
-
 ### list workspace
 GET http://localhost:6688/api/workspaces
 Authorization: Bearer {{auth_token}}
 
 ### list workspace users
 GET http://localhost:6688/api/users
+Authorization: Bearer {{auth_token}}
+
+### upload file
+POST http://localhost:6688/api/files
+Authorization: Bearer {{auth_token}}
+Content-Type: multipart/form-data; boundary=MYBOUNDARY
+
+--MYBOUNDARY
+Content-Disposition: form-data; filename="hello.txt"
+Content-Type: text/plain
+
+"Hello rust!"
+--MYBOUNDARY
+Content-Disposition: form-data; filename="long.jpg"
+Content-Type: application/octet-stream
+
+< ./chat_server/fixtures/WechatIMG30.jpg
+--MYBOUNDARY--
+
+### download file
+GET http://localhost:6688/api/download/files/4/a88/bbe/d0b34e9050267d89efcc28583288bd2879.jpg
+Authorization: Bearer {{auth_token}}
+
+### chat api
+GET http://localhost:6688/api/chat
+Authorization: Bearer {{auth_token}}
+
+### create chat
+POST http://localhost:6688/api/chat
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "name": "ws4_chat",
+  "members": [
+    10,
+    11
+  ]
+}
+
+### send messages
+POST http://localhost:6688/api/chat/8
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "content": "hello",
+  "file": [
+    "files/4/a88/bbe/d0b34e9050267d89efcc28583288bd2879.j"
+  ]
+}
+
+### get messages
+GET http://localhost:6688/api/chat/8/messages?limit=3&last_id=6
 Authorization: Bearer {{auth_token}}

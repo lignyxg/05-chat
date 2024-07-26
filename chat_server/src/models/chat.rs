@@ -162,6 +162,25 @@ impl Chat {
         info!("Chat {} owner updated to {}", id, new_owner_id);
         Ok(chat)
     }
+
+    pub(crate) async fn is_chat_member(
+        id: i64,
+        user_id: i64,
+        pool: &PgPool,
+    ) -> Result<bool, AppError> {
+        let chat: Option<Chat> = query_as(
+            r#"
+            SELECT *
+            FROM chats
+            WHERE id = $1 AND $2 = ANY(members)
+            "#,
+        )
+        .bind(id)
+        .bind(user_id)
+        .fetch_optional(pool)
+        .await?;
+        Ok(chat.is_some())
+    }
 }
 
 #[cfg(test)]

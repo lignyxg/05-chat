@@ -49,7 +49,6 @@ impl User {
                 ws.name, user.fullname
             );
         }
-
         Ok(user)
     }
 
@@ -65,6 +64,7 @@ impl User {
         Ok(password_hash)
     }
 
+    #[allow(dead_code)]
     pub async fn update_password(id: i64, password: &str, pool: &PgPool) -> Result<Self, AppError> {
         let password_hash = Self::hash_password(password)?;
         let user = sqlx::query_as(
