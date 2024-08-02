@@ -63,7 +63,7 @@ mod tests {
     use tower::ServiceExt;
 
     use crate::middlewares::jwt::jwt_verify;
-    use crate::test_util::prepare_test_data;
+    // use crate::test_util::prepare_test_data;
     use crate::AppConfig;
 
     use super::*;
@@ -76,7 +76,7 @@ mod tests {
     async fn test_chat_member_middleware() -> anyhow::Result<()> {
         let (state, tdb) = ChatState::new_for_test(AppConfig::load()?).await;
         let pool = tdb.get_pool().await;
-        prepare_test_data(&pool).await;
+        // prepare_test_data(&pool).await;
 
         let app = Router::new()
             .route("/:id", get(handler))

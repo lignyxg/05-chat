@@ -1,5 +1,5 @@
 [workspace]
-members = [
+members = ["chat_core",
     "chat_server",
     "notify_server"
 ]

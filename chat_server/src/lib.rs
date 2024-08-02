@@ -143,19 +143,20 @@ mod test_util {
         let tdb = TestPg::new(url.to_string(), std::path::Path::new("../migrations"));
         let pool = tdb.get_pool().await;
 
-        let sqls = include_str!("../fixtures/test.sql").split(';');
-        let mut tx = pool.begin().await.expect("Failed to begin transaction");
-        for sql in sqls {
-            if sql.trim().is_empty() {
-                continue;
-            }
-            tx.execute(sql).await.expect("Failed to execute sql");
-        }
-        tx.commit().await.expect("Failed to commit transaction");
+        // let sqls = include_str!("../fixtures/test.sql").split(';');
+        // let mut tx = pool.begin().await.expect("Failed to begin transaction");
+        // for sql in sqls {
+        //     if sql.trim().is_empty() {
+        //         continue;
+        //     }
+        //     tx.execute(sql).await.expect("Failed to execute sql");
+        // }
+        // tx.commit().await.expect("Failed to commit transaction");
 
         (pool, tdb)
     }
 
+    #[allow(unused)]
     pub async fn prepare_test_data(pool: &PgPool) {
         let sqls = include_str!("../fixtures/test.sql").split(';');
         let mut tx = pool.begin().await.expect("Failed to begin transaction");

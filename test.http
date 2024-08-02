@@ -14,8 +14,8 @@ POST http://localhost:6688/api/signin
 Content-Type: application/json
 
 {
-  "fullname": "Gnli",
-  "email": "gnli@gmail.com",
+  "fullname": "alice",
+  "email": "alice@bbc.com",
   "password": "123456"
 }
 
@@ -70,15 +70,13 @@ Content-Type: application/json
 }
 
 ### send messages
-POST http://localhost:6688/api/chat/8
+POST http://localhost:6688/api/chat/3
 Authorization: Bearer {{auth_token}}
 Content-Type: application/json
 
 {
-  "content": "hello",
-  "file": [
-    "files/4/a88/bbe/d0b34e9050267d89efcc28583288bd2879.j"
-  ]
+  "content": "what's up",
+  "file": []
 }
 
 ### get messages
