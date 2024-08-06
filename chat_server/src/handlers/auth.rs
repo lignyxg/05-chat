@@ -5,9 +5,9 @@ use axum::Json;
 use serde::{Deserialize, Serialize};
 use tracing::{info, warn};
 
-use crate::error::AppError::NotFound;
-use crate::error::{AppError, ErrorInfo};
-use crate::models::{CreateUser, SigninUser, User};
+use chat_core::models::{CreateUser, SigninUser, User};
+
+use crate::error::AppError;
 use crate::ChatState;
 
 pub(crate) async fn signin_handler(
@@ -15,16 +15,14 @@ pub(crate) async fn signin_handler(
     Json(SigninUser { email, password }): Json<SigninUser>,
 ) -> Result<impl IntoResponse, AppError> {
     match User::verify_password(&email, &password, &state.pool).await {
-        Ok(Some(user)) => {
+        Ok(user) => {
             let token = state.jwt_signer.sign(user)?;
             info!("user {} signed in", email);
             Ok((StatusCode::OK, Json(AuthToken { token })).into_response())
         }
-        Ok(None) => Err(NotFound(format!("user {}", email))),
         Err(err) => {
             warn!("error: {}", err);
-            let body = Json(ErrorInfo::new(err.to_string()));
-            Ok((StatusCode::FORBIDDEN, body).into_response())
+            Err(AppError::from(err))
         }
     }
 }
@@ -50,7 +48,8 @@ mod tests {
     use anyhow::Result;
     use http_body_util::BodyExt;
 
-    use crate::utils::jwt::JwtSigner;
+    use chat_core::utils::jwt::JwtSigner;
+
     use crate::AppConfig;
 
     use super::*;
@@ -58,7 +57,15 @@ mod tests {
     #[tokio::test]
     async fn test_jwt_sign_verify() {
         let signer = JwtSigner::load("./fixtures/pkcs8.pem").expect("Failed to load ek.pem");
-        let user = User::new(1, 0, "lign".to_string(), "testlign@gmail.com".to_string());
+        let user = User {
+            id: 1,
+            ws_id: 0,
+            fullname: "lign".to_string(),
+            email: "testlign@gmail.com".to_string(),
+            password_hash: None,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        };
         let token = signer.sign(user.clone()).unwrap();
         eprintln!("token: {}", token);
 

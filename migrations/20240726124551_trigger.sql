@@ -20,9 +20,15 @@ CREATE TRIGGER add_to_chat_trigger
 
 -- if new messages added, notify with that data
 CREATE OR REPLACE FUNCTION add_to_messages() RETURNS TRIGGER AS $$
+DECLARE
+users bigint[];
 BEGIN
     RAISE NOTICE 'add_to_messages:%', NEW;
-    PERFORM pg_notify('messages_create', row_to_json(NEW)::text);
+    SELECT members INTO users FROM chats WHERE id = NEW.chat_id;
+    PERFORM pg_notify('messages_create', json_build_object(
+        'messages', NEW,
+        'users', users
+    )::text);
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;

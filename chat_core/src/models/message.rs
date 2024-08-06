@@ -1,15 +1,15 @@
 use sqlx::{query_as, PgPool};
 
-use crate::error::AppError;
+use crate::error::ChatCoreError;
 use crate::models::{CreateMessage, ListMessages, Messages};
 
 impl Messages {
-    pub(crate) async fn create(
+    pub async fn create(
         create_message: CreateMessage,
         sender_id: i64,
         chat_id: i64,
         pool: &PgPool,
-    ) -> Result<Self, AppError> {
+    ) -> Result<Self, ChatCoreError> {
         let message = sqlx::query_as(
             r#"
             INSERT INTO messages
@@ -29,11 +29,12 @@ impl Messages {
         Ok(message)
     }
 
-    pub(crate) async fn list_messages_in_chat(
+    #[allow(unused)]
+    pub async fn list_messages_in_chat(
         list_messages: ListMessages,
         chat_id: i64,
         pool: &PgPool,
-    ) -> Result<Vec<Self>, AppError> {
+    ) -> Result<Vec<Self>, ChatCoreError> {
         let last_id = list_messages.last_id.unwrap_or(i64::MAX);
         let messages: Vec<Messages> = query_as(
             r#"

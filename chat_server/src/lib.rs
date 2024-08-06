@@ -10,20 +10,19 @@ use jwt_simple::prelude::ES256KeyPair;
 use sqlx::PgPool;
 use tracing::info;
 
+use chat_core::middlewares::jwt::JwtVerify;
+use chat_core::{middlewares::jwt::jwt_verify, utils::jwt::JwtSigner, User};
 pub use config::AppConfig;
 use handlers::*;
 
-use crate::middlewares::chat_member::verify_chat_member;
-use crate::middlewares::jwt::jwt_verify;
-use crate::middlewares::with_middleware;
-use crate::utils::jwt::JwtSigner;
+use crate::error::AppError;
+use crate::middlewares::{verify_chat_member, with_middleware};
 
 mod config;
 mod error;
 mod handlers;
 mod middlewares;
-mod models;
-mod utils;
+pub mod models;
 
 #[derive(Debug, Clone)]
 pub(crate) struct ChatState {
@@ -59,7 +58,7 @@ pub async fn get_router(config: AppConfig) -> Router {
         .nest("/chat", chat)
         .route("/files", post(upload_file_handler))
         .route("/download/*url", get(download_file_handler))
-        .layer(from_fn_with_state(state.clone(), jwt_verify))
+        .layer(from_fn_with_state(state.clone(), jwt_verify::<ChatState>))
         .route("/signup", post(signup_handler))
         .route("/signin", post(signin_handler));
 
@@ -69,6 +68,13 @@ pub async fn get_router(config: AppConfig) -> Router {
         .with_state(state);
 
     with_middleware(router)
+}
+
+impl JwtVerify for ChatState {
+    type Error = AppError;
+    fn verify(&self, token: &str) -> Result<User, Self::Error> {
+        self.jwt_signer.verify(token).map_err(AppError::from)
+    }
 }
 
 impl Deref for ChatState {
@@ -136,24 +142,6 @@ mod test_util {
             };
             (state, tdb)
         }
-    }
-
-    pub async fn get_test_pool(url: Option<&str>) -> (PgPool, TestPg) {
-        let url = url.unwrap_or("postgres://postgres:postgres@localhost:5432");
-        let tdb = TestPg::new(url.to_string(), std::path::Path::new("../migrations"));
-        let pool = tdb.get_pool().await;
-
-        // let sqls = include_str!("../fixtures/test.sql").split(';');
-        // let mut tx = pool.begin().await.expect("Failed to begin transaction");
-        // for sql in sqls {
-        //     if sql.trim().is_empty() {
-        //         continue;
-        //     }
-        //     tx.execute(sql).await.expect("Failed to execute sql");
-        // }
-        // tx.commit().await.expect("Failed to commit transaction");
-
-        (pool, tdb)
     }
 
     #[allow(unused)]

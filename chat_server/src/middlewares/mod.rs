@@ -6,14 +6,10 @@ use tower_http::trace::{DefaultMakeSpan, DefaultOnRequest, DefaultOnResponse, Tr
 use tower_http::LatencyUnit;
 use tracing::Level;
 
-use crate::middlewares::request_id::with_request_id;
-use crate::middlewares::server_time::ServerTimeLayer;
+use chat_core::middlewares::{request_id::with_request_id, server_time::ServerTimeLayer};
+pub use chat_member::verify_chat_member;
 
-pub(crate) mod chat_member;
-pub(crate) mod jwt;
-mod request_id;
-mod server_time;
-
+mod chat_member;
 pub(crate) fn with_middleware(router: Router) -> Router {
     router.layer(
         ServiceBuilder::new()

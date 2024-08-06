@@ -3,8 +3,9 @@ use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::{Extension, Json};
 
+use chat_core::models::{CreateWorkspace, User, Workspace};
+
 use crate::error::AppError;
-use crate::models::{CreateWorkspace, User, Workspace};
 use crate::ChatState;
 
 pub(crate) async fn list_users_handler(

@@ -7,26 +7,24 @@ edition = "2021"
 
 [dependencies]
 anyhow = { workspace = true }
-argon2 = { version = "0.5.3", features = ["std"] }
 axum = { workspace = true }
-chrono = { version = "0.4.38", features = ["serde"] }
-jwt-simple = { version = "0.12.9", features = ["pure-rust"], default-features = false }
+chrono = { workspace = true }
+jwt-simple = { workspace = true }
 serde = { workspace = true }
 serde_json = "1.0.120"
 serde_yaml = { workspace = true }
 sqlx = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
-tower-http = { version = "0.5.2", features = ["trace", "compression-full"] }
+tower = { workspace = true }
+tower-http = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
-sqlx-db-tester = "0.4.2"
-uuid = { version = "1.10.0", features = ["v7", "serde"] }
-tower = "0.4.13"
-axum-extra = { version = "0.9.3", features = ["typed-header"] }
+axum-extra = { workspace = true }
 sha1 = "0.10.6"
 tokio-util = "0.7.11"
 mime_guess = "2.0.5"
+chat_core = { workspace = true }
 
 [dev-dependencies]
 http-body-util = "0.1.2"

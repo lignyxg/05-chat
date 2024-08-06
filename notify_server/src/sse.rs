@@ -1,18 +1,48 @@
+use std::convert::Infallible;
+
+use axum::extract::State;
 use axum::response::sse::{Event, KeepAlive};
 use axum::response::Sse;
-use axum_extra::{headers, TypedHeader};
+use axum::Extension;
+use chat_core::User;
 use futures::Stream;
 use futures_util::stream;
-use std::convert::Infallible;
-use std::time::Duration;
+use jwt_simple::reexports::serde_json;
+use tokio::sync::broadcast;
 use tokio_stream::StreamExt;
 
+use crate::notif::ChatEvent;
+use crate::NotifState;
+
+const CHANNEL_CAP: usize = 256;
+
 pub(crate) async fn sse_handler(
-    TypedHeader(_user_agent): TypedHeader<headers::UserAgent>,
+    Extension(user): Extension<User>,
+    State(state): State<NotifState>,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
-    let stream = stream::repeat_with(|| Event::default().data("hi!"))
-        .map(Ok)
-        .throttle(Duration::from_secs(1));
+    let user_id = user.id;
+    let rx = if let Some(tx) = state.users_map.get(&user_id) {
+        tx.subscribe()
+    } else {
+        let (tx, rx) = broadcast::channel(CHANNEL_CAP);
+        state.users_map.insert(user_id, tx);
+        rx
+    };
+
+    let stream = stream::unfold(
+        rx,
+        |mut rx| async move { Some((rx.recv().await.unwrap(), rx)) },
+    )
+    .map(|msg| {
+        let name = match msg.as_ref() {
+            ChatEvent::NewChat(_) => "new_chat",
+            ChatEvent::UpdateChat(_) => "update_chat",
+            ChatEvent::DeleteChat(_) => "delete_chat",
+            ChatEvent::NewMessage(_) => "new_message",
+        };
+        let data = serde_json::to_string(&msg).expect("Failed to serialize data");
+        Ok(Event::default().event(name).data(data))
+    });
 
     Sse::new(stream).keep_alive(KeepAlive::default())
 }

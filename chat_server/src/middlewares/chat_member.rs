@@ -4,11 +4,12 @@ use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
 use tracing::warn;
 
+use chat_core::models::{Chat, User};
+
 use crate::error::AppError;
-use crate::models::{Chat, User};
 use crate::ChatState;
 
-pub(crate) async fn verify_chat_member(
+pub async fn verify_chat_member(
     State(state): State<ChatState>,
     req: Request,
     next: Next,
@@ -31,7 +32,7 @@ pub(crate) async fn verify_chat_member(
         None => {
             return (
                 StatusCode::UNAUTHORIZED,
-                AppError::Unauthorized("User not found".to_string()),
+                AppError::Forbidden("User not found".to_string()),
             )
                 .into_response();
         }
@@ -42,7 +43,7 @@ pub(crate) async fn verify_chat_member(
         Ok(true) => next.run(req).await,
         Ok(false) => (
             StatusCode::FORBIDDEN,
-            AppError::Unauthorized(format!("User {} is not in the chat", user.email)),
+            AppError::Forbidden(format!("User {} is not in the chat", user.email)),
         )
             .into_response(),
         Err(e) => {
@@ -62,8 +63,9 @@ mod tests {
     use axum::Router;
     use tower::ServiceExt;
 
-    use crate::middlewares::jwt::jwt_verify;
     // use crate::test_util::prepare_test_data;
+    use chat_core::middlewares::jwt::jwt_verify;
+
     use crate::AppConfig;
 
     use super::*;
@@ -81,7 +83,7 @@ mod tests {
         let app = Router::new()
             .route("/:id", get(handler))
             .layer(from_fn_with_state(state.clone(), verify_chat_member))
-            .layer(from_fn_with_state(state.clone(), jwt_verify));
+            .layer(from_fn_with_state(state.clone(), jwt_verify::<ChatState>));
 
         let user = User::find_user_by_email("alice@bbc.com", &pool)
             .await?

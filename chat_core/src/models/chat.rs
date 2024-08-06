@@ -1,35 +1,35 @@
 use sqlx::{query_as, PgPool};
 use tracing::info;
 
-use crate::error::AppError;
+use crate::error::ChatCoreError;
 use crate::models::{Chat, ChatType, CreateChat, User};
 
 impl Chat {
-    pub(crate) async fn create(
+    pub async fn create(
         create_chat: CreateChat,
         ws_id: i64,
         user_id: i64,
         pool: &PgPool,
-    ) -> Result<Self, AppError> {
+    ) -> Result<Self, ChatCoreError> {
         if !create_chat.members.contains(&user_id) {
-            return Err(AppError::CreateChatError(
+            return Err(ChatCoreError::CreateChatError(
                 "User not in chat members".to_string(),
             ));
         }
         let len = create_chat.members.len();
         if len < 2 {
-            return Err(AppError::CreateChatError(
+            return Err(ChatCoreError::CreateChatError(
                 "Chat must have at least 2 members".to_string(),
             ));
         }
         if len > 8 && create_chat.name.is_none() {
-            return Err(AppError::CreateChatError(
+            return Err(ChatCoreError::CreateChatError(
                 "Chat with more than 8 members must have a name".to_string(),
             ));
         }
         let users = User::find_user_by_ids(&create_chat.members, pool).await?;
         if users.len() != len {
-            return Err(AppError::CreateChatError(
+            return Err(ChatCoreError::CreateChatError(
                 "Some Chat members not found".to_string(),
             ));
         }
@@ -64,7 +64,10 @@ impl Chat {
         Ok(chat)
     }
 
-    pub(crate) async fn find_chat_by_id(id: i64, pool: &PgPool) -> Result<Option<Self>, AppError> {
+    pub(crate) async fn find_chat_by_id(
+        id: i64,
+        pool: &PgPool,
+    ) -> Result<Option<Self>, ChatCoreError> {
         let chat = query_as(
             r#"
             SELECT *
@@ -78,10 +81,10 @@ impl Chat {
 
         Ok(chat)
     }
-    pub(crate) async fn list_chats_in_workspace(
+    pub async fn list_chats_in_workspace(
         ws_id: i64,
         pool: &PgPool,
-    ) -> Result<Vec<Self>, AppError> {
+    ) -> Result<Vec<Self>, ChatCoreError> {
         let chats = query_as(
             r#"
             SELECT *
@@ -96,17 +99,17 @@ impl Chat {
         Ok(chats)
     }
 
-    pub(crate) async fn delete(id: i64, user_id: i64, pool: &PgPool) -> Result<Self, AppError> {
+    pub async fn delete(id: i64, user_id: i64, pool: &PgPool) -> Result<Self, ChatCoreError> {
         let chat = Chat::find_chat_by_id(id, pool).await?;
         match chat {
             Some(chat) => {
                 if chat.typ != ChatType::Single && chat.owner_id != Some(user_id) {
-                    return Err(AppError::Unauthorized(
+                    return Err(ChatCoreError::Unauthorized(
                         "Only owner can delete chat".to_string(),
                     ));
                 }
             }
-            None => return Err(AppError::NotFound("Chat not found".to_string())),
+            None => return Err(ChatCoreError::NotFound("Chat not found".to_string())),
         }
 
         let chat = query_as(
@@ -124,17 +127,17 @@ impl Chat {
         Ok(chat)
     }
 
-    pub(crate) async fn update_owner(
+    pub async fn update_owner(
         id: i64,
         user_id: i64,
         new_owner_id: i64,
         pool: &PgPool,
-    ) -> Result<Self, AppError> {
+    ) -> Result<Self, ChatCoreError> {
         let chat = Chat::find_chat_by_id(id, pool).await?;
         match chat {
             Some(chat) => {
                 if chat.typ != ChatType::Single && chat.owner_id != Some(user_id) {
-                    return Err(AppError::Unauthorized(
+                    return Err(ChatCoreError::Unauthorized(
                         "Only owner can update chat".to_string(),
                     ));
                 }
@@ -142,7 +145,7 @@ impl Chat {
                     return Ok(chat);
                 }
             }
-            None => return Err(AppError::NotFound("Chat not found".to_string())),
+            None => return Err(ChatCoreError::NotFound("Chat not found".to_string())),
         }
 
         let chat = query_as(
@@ -163,11 +166,11 @@ impl Chat {
         Ok(chat)
     }
 
-    pub(crate) async fn is_chat_member(
+    pub async fn is_chat_member(
         id: i64,
         user_id: i64,
         pool: &PgPool,
-    ) -> Result<bool, AppError> {
+    ) -> Result<bool, ChatCoreError> {
         let chat: Option<Chat> = query_as(
             r#"
             SELECT *

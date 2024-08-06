@@ -1,13 +1,10 @@
 use sqlx::{query_as, PgPool};
 
-use crate::error::AppError;
+use crate::error::ChatCoreError;
 use crate::models::{CreateWorkspace, User, Workspace};
 
 impl Workspace {
-    pub(crate) async fn create(
-        create_ws: CreateWorkspace,
-        pool: &PgPool,
-    ) -> Result<Self, AppError> {
+    pub async fn create(create_ws: CreateWorkspace, pool: &PgPool) -> Result<Self, ChatCoreError> {
         let ws = query_as(
             r#"
             INSERT INTO workspaces (name, owner_id)
@@ -26,7 +23,7 @@ impl Workspace {
     pub(crate) async fn find_workspace_by_name(
         name: &str,
         pool: &PgPool,
-    ) -> Result<Option<Self>, AppError> {
+    ) -> Result<Option<Self>, ChatCoreError> {
         let workspace: Option<Workspace> = query_as(
             r#"
             SELECT *
@@ -45,10 +42,10 @@ impl Workspace {
         name: &str,
         email: &str,
         pool: &PgPool,
-    ) -> Result<Self, AppError> {
+    ) -> Result<Self, ChatCoreError> {
         let user = User::find_user_by_email(email, pool).await?;
         if user.is_none() {
-            return Err(AppError::NotFound("user not found".to_string()));
+            return Err(ChatCoreError::NotFound("user not found".to_string()));
         }
         let owner_id = user.unwrap().id;
         let workspace = query_as(
@@ -67,7 +64,7 @@ impl Workspace {
         Ok(workspace)
     }
 
-    pub(crate) async fn list_workspaces(pool: &PgPool) -> Result<Vec<Self>, AppError> {
+    pub async fn list_workspaces(pool: &PgPool) -> Result<Vec<Self>, ChatCoreError> {
         let workspaces = query_as(
             r#"
             SELECT *

@@ -3,8 +3,10 @@ use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::{Extension, Json};
 
+use chat_core::models::{Chat, CreateChat, User};
+
 use crate::error::AppError;
-use crate::models::{Chat, CreateChat, UpdateChat, User};
+use crate::models::UpdateChat;
 use crate::ChatState;
 
 pub(crate) async fn list_chat_handler(

@@ -5,7 +5,7 @@ use jwt_simple::claims::Claims;
 use jwt_simple::common::VerificationOptions;
 use jwt_simple::prelude::Duration;
 
-use crate::error::AppError;
+use crate::error::ChatCoreError;
 use crate::models::User;
 
 const JWT_DURATION: u64 = 7 * 24 * 60 * 60;
@@ -17,17 +17,17 @@ pub struct JwtSigner {
 
 #[allow(unused)]
 impl JwtSigner {
-    pub(crate) fn new(kpair: ES256KeyPair) -> Self {
+    pub fn new(kpair: ES256KeyPair) -> Self {
         Self { kpair }
     }
 
-    pub(crate) fn load(path: &str) -> Result<Self, AppError> {
-        let pem = std::fs::read_to_string(path)?;
+    pub fn load(path: &str) -> Result<Self, ChatCoreError> {
+        let pem = std::fs::read_to_string(path).expect("Failed to read pem file");
         let kpair = ES256KeyPair::from_pem(&pem)?;
         Ok(Self::new(kpair))
     }
 
-    pub(crate) fn sign(&self, user: impl Into<User>) -> Result<String, AppError> {
+    pub fn sign(&self, user: impl Into<User>) -> Result<String, ChatCoreError> {
         let claims = Claims::with_custom_claims(user.into(), Duration::from_secs(JWT_DURATION))
             .with_issuer(JWT_ISSUER)
             .with_audience(JWT_AUDIENCE);
@@ -36,7 +36,7 @@ impl JwtSigner {
         Ok(token)
     }
 
-    pub(crate) fn verify(&self, token: &str) -> Result<User, AppError> {
+    pub fn verify(&self, token: &str) -> Result<User, ChatCoreError> {
         let allowed_issuers = HashSet::from([JWT_ISSUER.to_string()]);
         let allowed_audiences = HashSet::from([JWT_AUDIENCE.to_string()]);
         let opts = VerificationOptions {

@@ -1,69 +1,49 @@
 use axum::extract::multipart::MultipartError;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::Json;
-use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum AppError {
-    #[error("sqlx error: {0}")]
-    SqlxError(#[from] sqlx::Error),
-    #[error("password hash error: {0}")]
-    PasswordHashError(#[from] argon2::password_hash::Error),
-    #[error("unauthorized: {0}")]
-    Unauthorized(String),
-    #[error("{0} not found")]
-    NotFound(String),
-    #[error("jwt error: {0}")]
-    JwtError(#[from] jwt_simple::Error),
-    #[error("io error: {0}")]
-    IOError(#[from] std::io::Error),
-    #[error("email already exists: {0}")]
-    EmailAlreadyExists(String),
-    #[error("serde json error: {0}")]
-    SerdeJsonError(#[from] serde_json::Error),
-    #[error("create chat error: {0}")]
-    CreateChatError(String),
     #[error("{0}")]
     CreateFileError(String),
+    #[error("{0}")]
+    Forbidden(String),
     #[error("multipart error: {0}")]
     MultiPartError(#[from] MultipartError),
     #[error("invalid header value: {0}")]
     InvalidHeaderValue(#[from] axum::http::header::InvalidHeaderValue),
     #[error("parse error: {0}")]
     ParseError(String),
+    #[error("serde json error: {0}")]
+    SerdeJsonError(#[from] serde_json::Error),
+    #[error("{0}")]
+    ChatCoreError(#[from] chat_core::error::ChatCoreError),
+    #[error("io error: {0}")]
+    IOError(#[from] std::io::Error),
 }
 
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
-        let status = match self {
-            AppError::SqlxError(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            AppError::PasswordHashError(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            AppError::Unauthorized(_) => StatusCode::UNAUTHORIZED,
-            AppError::NotFound(_) => StatusCode::NOT_FOUND,
-            AppError::JwtError(_) => StatusCode::UNPROCESSABLE_ENTITY,
-            AppError::IOError(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            AppError::EmailAlreadyExists(_) => StatusCode::CONFLICT,
-            AppError::SerdeJsonError(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            AppError::CreateChatError(_) => StatusCode::BAD_REQUEST,
-            AppError::CreateFileError(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            AppError::MultiPartError(_) => StatusCode::BAD_REQUEST,
-            AppError::InvalidHeaderValue(_) => StatusCode::BAD_REQUEST,
-            AppError::ParseError(_) => StatusCode::BAD_REQUEST,
-        };
-
-        (status, Json(ErrorInfo::new(self.to_string()))).into_response()
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ErrorInfo {
-    pub err: String,
-}
-
-impl ErrorInfo {
-    pub fn new(err: impl Into<String>) -> Self {
-        Self { err: err.into() }
+        match self {
+            AppError::ChatCoreError(e) => e.into_response(),
+            AppError::Forbidden(_) => (StatusCode::FORBIDDEN, self.to_string()).into_response(),
+            AppError::SerdeJsonError(_) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()).into_response()
+            }
+            AppError::CreateFileError(_) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()).into_response()
+            }
+            AppError::MultiPartError(_) => {
+                (StatusCode::BAD_REQUEST, self.to_string()).into_response()
+            }
+            AppError::InvalidHeaderValue(_) => {
+                (StatusCode::BAD_REQUEST, self.to_string()).into_response()
+            }
+            AppError::ParseError(_) => (StatusCode::BAD_REQUEST, self.to_string()).into_response(),
+            AppError::IOError(_) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()).into_response()
+            }
+        }
     }
 }

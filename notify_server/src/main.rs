@@ -7,7 +7,8 @@ use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::Layer as _;
 
 use notify_server::config::AppConfig;
-use notify_server::{get_router, setup_pglistener};
+use notify_server::notif::setup_pglistener;
+use notify_server::{get_router, NotifState};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -15,11 +16,12 @@ async fn main() -> anyhow::Result<()> {
     tracing_subscriber::registry().with(layer).init();
 
     let config = AppConfig::load()?;
-    setup_pglistener(&config.db_url).await?;
+    let state = NotifState::new();
+    setup_pglistener(state.clone()).await?;
     let addr = format!("0.0.0.0:{}", config.server.port);
     let listener = TcpListener::bind(&addr).await?;
     info!("Listening on: {}", addr);
 
-    axum::serve(listener, get_router()).await?;
+    axum::serve(listener, get_router(state.clone())).await?;
     Ok(())
 }

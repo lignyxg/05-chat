@@ -8,8 +8,10 @@ use axum::{Extension, Json};
 use tokio::fs;
 use tokio_util::io::ReaderStream;
 
+use chat_core::User;
+
 use crate::error::AppError;
-use crate::models::{ChatFile, User};
+use crate::models::ChatFile;
 use crate::ChatState;
 
 pub(crate) async fn upload_file_handler(
@@ -39,9 +41,7 @@ pub(crate) async fn download_file_handler(
 ) -> Result<impl IntoResponse, AppError> {
     let chat_file = ChatFile::from_str(&url)?;
     if user.ws_id != chat_file.ws_id {
-        return Err(AppError::Unauthorized(
-            "you don't have permission".to_string(),
-        ));
+        return Err(AppError::Forbidden("you don't have permission".to_string()));
     }
 
     let url = chat_file.local_path(&state.config.base_url, user.ws_id);

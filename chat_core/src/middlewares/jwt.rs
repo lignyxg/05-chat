@@ -1,3 +1,5 @@
+use std::fmt;
+
 use axum::extract::{FromRequestParts, Request, State};
 use axum::http::StatusCode;
 use axum::middleware::Next;
@@ -7,7 +9,7 @@ use axum_extra::headers::Authorization;
 use axum_extra::TypedHeader;
 use tracing::warn;
 
-use crate::ChatState;
+use crate::User;
 
 /*
     two ways to write middleware:
@@ -16,11 +18,15 @@ use crate::ChatState;
     2. use tower::Service and tower::layer
 */
 
-pub(crate) async fn jwt_verify(
-    State(state): State<ChatState>,
-    req: Request,
-    next: Next,
-) -> Response {
+pub trait JwtVerify {
+    type Error: fmt::Debug;
+    fn verify(&self, token: &str) -> Result<User, Self::Error>;
+}
+
+pub async fn jwt_verify<T>(State(state): State<T>, req: Request, next: Next) -> Response
+where
+    T: JwtVerify + Send + Sync + 'static,
+{
     // get token from request, if none, return 401
     let (mut parts, body) = req.into_parts();
     let token =
@@ -33,7 +39,7 @@ pub(crate) async fn jwt_verify(
         };
 
     let mut req = Request::from_parts(parts, body);
-    match state.jwt_signer.verify(&token) {
+    match state.verify(&token) {
         Ok(user) => {
             req.extensions_mut().insert(user);
             next.run(req).await
@@ -44,16 +50,37 @@ pub(crate) async fn jwt_verify(
 
 #[cfg(test)]
 mod tests {
+    use std::ops::Deref;
+    use std::sync::Arc;
+
     use axum::body::Body;
     use axum::middleware::from_fn_with_state;
     use axum::routing::get;
     use axum::Router;
     use tower::ServiceExt;
 
+    use crate::error::ChatCoreError;
     use crate::models::User;
-    use crate::AppConfig;
+    use crate::utils::jwt::JwtSigner;
 
     use super::*;
+
+    #[derive(Clone)]
+    struct AppState(Arc<JwtSigner>);
+
+    impl Deref for AppState {
+        type Target = JwtSigner;
+        fn deref(&self) -> &Self::Target {
+            &self.0
+        }
+    }
+
+    impl JwtVerify for AppState {
+        type Error = ChatCoreError;
+        fn verify(&self, token: &str) -> Result<User, Self::Error> {
+            self.0.verify(token)
+        }
+    }
 
     async fn handler() -> impl IntoResponse {
         "handler"
@@ -61,13 +88,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_jwt_verify_middleware() -> anyhow::Result<()> {
-        let (state, _tdb) = ChatState::new_for_test(AppConfig::load()?).await;
+        let signer = JwtSigner::load("./fixtures/pkcs8.pem").expect("Failed to load ek.pem");
+        let state = AppState(Arc::new(signer));
         let app = Router::new()
             .route("/", get(handler))
-            .layer(from_fn_with_state(state.clone(), jwt_verify));
+            .layer(from_fn_with_state(state.clone(), jwt_verify::<AppState>));
 
         let user = User::new(1, 0, "lign".to_string(), "testlign@gmail.com".to_string());
-        let token = state.jwt_signer.sign(user)?;
+
+        let token = state.sign(user)?;
         // happy path
         let res = app
             .clone()

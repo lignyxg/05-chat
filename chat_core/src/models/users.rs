@@ -3,13 +3,13 @@ use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use sqlx::{query_as, PgPool};
 use tracing::info;
 
-use crate::error::AppError;
+use crate::error::ChatCoreError;
 use crate::models::{CreateUser, CreateWorkspace, User, Workspace};
 
 impl User {
-    pub async fn create(create_user: CreateUser, pool: &PgPool) -> Result<Self, AppError> {
+    pub async fn create(create_user: CreateUser, pool: &PgPool) -> Result<Self, ChatCoreError> {
         if let Some(user) = Self::find_user_by_email(&create_user.email, pool).await? {
-            return Err(AppError::EmailAlreadyExists(user.email));
+            return Err(ChatCoreError::EmailAlreadyExists(user.email));
         }
         let ws = match Workspace::find_workspace_by_name(&create_user.ws_name, pool).await? {
             Some(ws) => ws,
@@ -52,7 +52,7 @@ impl User {
         Ok(user)
     }
 
-    fn hash_password(pwd: &str) -> Result<String, AppError> {
+    fn hash_password(pwd: &str) -> Result<String, ChatCoreError> {
         let salt = SaltString::generate(&mut OsRng);
 
         // Argon2 with default params (Argon2id v19)
@@ -65,7 +65,11 @@ impl User {
     }
 
     #[allow(dead_code)]
-    pub async fn update_password(id: i64, password: &str, pool: &PgPool) -> Result<Self, AppError> {
+    pub async fn update_password(
+        id: i64,
+        password: &str,
+        pool: &PgPool,
+    ) -> Result<Self, ChatCoreError> {
         let password_hash = Self::hash_password(password)?;
         let user = sqlx::query_as(
             r#"
@@ -83,7 +87,10 @@ impl User {
         Ok(user)
     }
 
-    pub async fn find_user_by_email(email: &str, pool: &PgPool) -> Result<Option<Self>, AppError> {
+    pub async fn find_user_by_email(
+        email: &str,
+        pool: &PgPool,
+    ) -> Result<Option<Self>, ChatCoreError> {
         let user: Option<User> = query_as(
             r#"
             SELECT *
@@ -107,7 +114,7 @@ impl User {
         email: &str,
         password: &str,
         pool: &PgPool,
-    ) -> Result<Option<Self>, AppError> {
+    ) -> Result<Self, ChatCoreError> {
         let user: Option<User> = query_as(
             r#"
             SELECT *
@@ -123,15 +130,20 @@ impl User {
             let argon2 = Argon2::default();
             let parsed_hash = PasswordHash::new(user.password_hash.as_ref().unwrap())?;
             match argon2.verify_password(password.as_ref(), &parsed_hash) {
-                Ok(_) => Ok(Some(user)),
-                Err(_) => Err(AppError::Unauthorized("password not match".to_string())),
+                Ok(_) => Ok(user),
+                Err(_) => Err(ChatCoreError::Unauthorized(
+                    "password not match".to_string(),
+                )),
             }
         } else {
-            Ok(None)
+            Err(ChatCoreError::NotFound("user not found".to_string()))
         }
     }
 
-    pub async fn list_users_by_workspace(ws_id: i64, pool: &PgPool) -> Result<Vec<Self>, AppError> {
+    pub async fn list_users_by_workspace(
+        ws_id: i64,
+        pool: &PgPool,
+    ) -> Result<Vec<Self>, ChatCoreError> {
         let users = query_as(
             r#"
             SELECT *
@@ -146,7 +158,7 @@ impl User {
         Ok(users)
     }
 
-    pub async fn find_user_by_ids(ids: &[i64], pool: &PgPool) -> Result<Vec<Self>, AppError> {
+    pub async fn find_user_by_ids(ids: &[i64], pool: &PgPool) -> Result<Vec<Self>, ChatCoreError> {
         let users = query_as(
             r#"
             SELECT *
@@ -202,7 +214,7 @@ mod tests {
 
         assert_eq!(
             User::verify_password(email, pwd, &pool).await.unwrap(),
-            Some(user.clone())
+            user
         );
         let user_get = User::find_user_by_email(email, &pool)
             .await

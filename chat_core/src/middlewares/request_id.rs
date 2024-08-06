@@ -3,11 +3,12 @@ use axum::http::HeaderValue;
 use axum::middleware::Next;
 use axum::response::Response;
 use tracing::warn;
+
 use uuid::Uuid;
 
 const X_REQUEST_ID: &str = "x-request-id";
 
-pub(crate) async fn with_request_id(mut req: Request, next: Next) -> Response {
+pub async fn with_request_id(mut req: Request, next: Next) -> Response {
     let id = match req.headers().get(X_REQUEST_ID) {
         Some(v) => Some(v.clone()),
         None => {

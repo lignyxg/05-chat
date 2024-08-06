@@ -7,8 +7,10 @@ use axum::{Extension, Json};
 use serde_json::json;
 use tracing::warn;
 
+use chat_core::models::{CreateMessage, ListMessages, Messages, User};
+
 use crate::error::AppError;
-use crate::models::{ChatFile, CreateMessage, ListMessages, Messages, User};
+use crate::models::ChatFile;
 use crate::ChatState;
 
 pub(crate) async fn send_message_handler(
