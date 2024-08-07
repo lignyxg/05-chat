@@ -1,0 +1,13 @@
+[package]
+name = "chat_test"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+
+[dev-dependencies]
+anyhow.workspace = true
+chat_core.workspace = true
+chat_server.workspace = true
+notify_server.workspace = true
+serde.workspace = true

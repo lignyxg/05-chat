@@ -1,12 +1,13 @@
 use std::fmt;
 
-use axum::extract::{FromRequestParts, Request, State};
+use axum::extract::{FromRequestParts, Query, Request, State};
 use axum::http::StatusCode;
 use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
 use axum_extra::headers::authorization::Bearer;
 use axum_extra::headers::Authorization;
 use axum_extra::TypedHeader;
+use serde::Deserialize;
 use tracing::warn;
 
 use crate::User;
@@ -17,6 +18,10 @@ use crate::User;
     1. use axum::middleware::from_fn or from_fn_with_state
     2. use tower::Service and tower::layer
 */
+#[derive(Debug, Deserialize)]
+struct Params {
+    access_token: String,
+}
 
 pub trait JwtVerify {
     type Error: fmt::Debug;
@@ -29,12 +34,24 @@ where
 {
     // get token from request, if none, return 401
     let (mut parts, body) = req.into_parts();
+
     let token =
         match TypedHeader::<Authorization<Bearer>>::from_request_parts(&mut parts, &state).await {
             Ok(TypedHeader(Authorization(bearer))) => bearer.token().to_string(),
             Err(e) => {
-                warn!("error: {}", e);
-                return (StatusCode::BAD_REQUEST, "bad request").into_response();
+                if e.is_missing() {
+                    let params = Query::<Params>::from_request_parts(&mut parts, &state).await;
+                    match params {
+                        Ok(Query(Params { access_token })) => access_token,
+                        Err(e) => {
+                            warn!("error: {}", e);
+                            return (StatusCode::BAD_REQUEST, "bad request").into_response();
+                        }
+                    }
+                } else {
+                    warn!("error: {}", e);
+                    return (StatusCode::BAD_REQUEST, "bad request").into_response();
+                }
             }
         };
 
@@ -109,6 +126,17 @@ mod tests {
             .await?;
         assert_eq!(res.status(), StatusCode::OK);
 
+        // good token in query string
+        let res = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri(format!("/?access_token={}", token))
+                    .body(Body::empty())?,
+            )
+            .await?;
+        assert_eq!(res.status(), StatusCode::OK);
+
         // bad request
         let res = app
             .clone()
@@ -123,10 +151,21 @@ mod tests {
 
         // unauthorized
         let res = app
+            .clone()
             .oneshot(
                 Request::builder()
                     .uri("/")
                     .header("Authorization", format!("Bearer {}", "bad token"))
+                    .body(Body::empty())?,
+            )
+            .await?;
+        assert_eq!(res.status(), StatusCode::UNAUTHORIZED);
+
+        // bad token in query string
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .uri(format!("/?access_token={}", "bad_token"))
                     .body(Body::empty())?,
             )
             .await?;

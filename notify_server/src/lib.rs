@@ -2,6 +2,7 @@ use std::ops::Deref;
 use std::sync::Arc;
 
 use axum::middleware::from_fn_with_state;
+use axum::response::{Html, IntoResponse};
 use axum::routing::get;
 use axum::Router;
 use dashmap::DashMap;
@@ -21,6 +22,8 @@ mod error;
 pub mod notif;
 mod sse;
 
+const INDEX_HTML: &str = include_str!("../index.html");
+
 #[derive(Clone)]
 pub struct NotifState {
     inner: Arc<NotifStateInner>,
@@ -36,6 +39,7 @@ pub fn get_router(state: NotifState) -> Router {
     Router::new()
         .route("/events", get(sse_handler))
         .layer(from_fn_with_state(state.clone(), jwt_verify::<NotifState>))
+        .route("/", get(index_handler))
         .with_state(state)
 }
 
@@ -73,4 +77,8 @@ impl Default for NotifState {
     fn default() -> Self {
         Self::new()
     }
+}
+
+async fn index_handler() -> impl IntoResponse {
+    Html(INDEX_HTML)
 }

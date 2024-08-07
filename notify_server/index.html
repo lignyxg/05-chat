@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Notify Server</title>
+</head>
+<body>
+<h1>Notify Server</h1>
+<script lang="javascript">
+    let token = "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3MjI5OTg1NDAsImV4cCI6MTcyMzYwMzM0MCwibmJmIjoxNzIyOTk4NTQwLCJpc3MiOiJjaGF0X3NlcnZlciIsImF1ZCI6ImNoYXRfY2xpZW50IiwiaWQiOjIsIndzX2lkIjoxLCJmdWxsbmFtZSI6ImFsaWNlIiwiZW1haWwiOiJhbGljZUBiYmMuY29tIiwiY3JlYXRlZF9hdCI6IjIwMjQtMDgtMDZUMDM6NTQ6MTEuMzQ2OTU5WiIsInVwZGF0ZWRfYXQiOiIyMDI0LTA4LTA2VDAzOjU0OjExLjM0Njk1OVoifQ.SFIt-5lvoDrpXS23luJfF_6eX4PNUvH9Q-hmtFEoAtVdwsHgqVKTBrNiUoTithklxeJBv5PmGXmcIh6WCC5X2Q";
+    let event_source = new EventSource(`/events?access_token=${token}`);
+    event_source.addEventListener('new_chat', function (e) {
+        console.log(e.data);
+    });
+    event_source.addEventListener("update_chat", function (e) {
+        console.log(e.data);
+    });
+    event_source.addEventListener("delete_chat", function (e) {
+        console.log(e.data);
+    });
+    event_source.addEventListener("new_message", function (e) {
+        console.log(e.data);
+    });
+
+
+    event_source.onmessage = function (e) {
+        console.log("Got:", e.data);
+    };
+</script>
+
+</body>
+
+</html>
