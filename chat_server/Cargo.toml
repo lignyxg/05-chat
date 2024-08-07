@@ -5,15 +5,21 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+default = []
+test-util = ["http-body-util", "sqlx-db-tester"]
+
 [dependencies]
 anyhow = { workspace = true }
 axum = { workspace = true }
 chrono = { workspace = true }
+http-body-util = { version = "0.1.2", optional = true }
 jwt-simple = { workspace = true }
 serde = { workspace = true }
-serde_json = "1.0.120"
+serde_json = { workspace = true }
 serde_yaml = { workspace = true }
 sqlx = { workspace = true }
+sqlx-db-tester = { version = "0.4.2", optional = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 tower = { workspace = true }
@@ -27,5 +33,5 @@ mime_guess = "2.0.5"
 chat_core = { workspace = true }
 
 [dev-dependencies]
-http-body-util = "0.1.2"
-sqlx-db-tester = "0.4.2"
+chat_server = { workspace = true, features = ["test-util"] }
+

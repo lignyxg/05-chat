@@ -14,7 +14,6 @@ POST http://localhost:6688/api/signin
 Content-Type: application/json
 
 {
-  "fullname": "alice",
   "email": "alice@bbc.com",
   "password": "123456"
 }

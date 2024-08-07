@@ -14,7 +14,7 @@ use chat_core::models::User;
 use chat_core::utils::jwt::JwtSigner;
 
 use crate::config::AppConfig;
-use crate::notif::ChatEvent;
+use crate::notif::{setup_pglistener, ChatEvent};
 use crate::sse::sse_handler;
 
 pub mod config;
@@ -35,12 +35,14 @@ pub struct NotifStateInner {
     users_map: DashMap<i64, Sender<Arc<ChatEvent>>>,
 }
 
-pub fn get_router(state: NotifState) -> Router {
-    Router::new()
+pub async fn get_router(state: NotifState) -> anyhow::Result<Router> {
+    setup_pglistener(state.clone()).await?;
+    let router = Router::new()
         .route("/events", get(sse_handler))
         .layer(from_fn_with_state(state.clone(), jwt_verify::<NotifState>))
         .route("/", get(index_handler))
-        .with_state(state)
+        .with_state(state);
+    Ok(router)
 }
 
 impl JwtVerify for NotifState {
@@ -58,8 +60,7 @@ impl Deref for NotifState {
 }
 
 impl NotifState {
-    pub fn new() -> Self {
-        let config = AppConfig::load().expect("Failed to load config");
+    pub fn new(config: AppConfig) -> Self {
         let verifier = JwtSigner::new(
             ES256KeyPair::from_pem(&config.auth.sk).expect("Failed to create jwt verifier"),
         );
@@ -70,12 +71,6 @@ impl NotifState {
                 users_map: DashMap::new(),
             }),
         }
-    }
-}
-
-impl Default for NotifState {
-    fn default() -> Self {
-        Self::new()
     }
 }
 

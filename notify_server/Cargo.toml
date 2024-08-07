@@ -9,7 +9,7 @@ axum = { workspace = true }
 axum-extra = { version = "0.9.3", features = ["typed-header"] }
 chat_core = { workspace = true }
 dashmap = "6.0.1"
-futures = "0.3.30"
+futures = { workspace = true }
 futures-util = "0.3.30"
 jwt-simple = { workspace = true }
 serde = { workspace = true }

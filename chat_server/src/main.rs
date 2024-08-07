@@ -6,7 +6,7 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::Layer as _;
 
-use chat_server::{get_router, AppConfig};
+use chat_server::{get_router, AppConfig, ChatState};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -14,9 +14,11 @@ async fn main() -> anyhow::Result<()> {
     tracing_subscriber::registry().with(layer).init();
 
     let config = AppConfig::load()?;
-    let addr = format!("0.0.0.0:{}", config.server.port);
+    let addr = format!("0.0.0.0:{}", &config.server.port);
+    let state = ChatState::new(config).await;
+
     let listener = TcpListener::bind(&addr).await?;
     info!("Listening on: {}", addr);
-    axum::serve(listener, get_router(config).await).await?;
+    axum::serve(listener, get_router(state).await).await?;
     Ok(())
 }

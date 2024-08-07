@@ -13,7 +13,7 @@ use crate::error::NotifyError::NotificationFault;
 use crate::NotifState;
 
 #[derive(Debug, Serialize, Deserialize)]
-#[serde(tag = "type")]
+#[serde(tag = "chat_event")]
 pub enum ChatEvent {
     NewChat(Chat),
     UpdateChat(Chat),

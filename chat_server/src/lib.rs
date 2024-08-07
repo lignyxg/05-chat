@@ -25,19 +25,17 @@ mod middlewares;
 pub mod models;
 
 #[derive(Debug, Clone)]
-pub(crate) struct ChatState {
+pub struct ChatState {
     inner: Arc<ChatStateInner>,
 }
 
-pub(crate) struct ChatStateInner {
+pub struct ChatStateInner {
     pub(crate) config: AppConfig,
     pub(crate) pool: PgPool,
     pub(crate) jwt_signer: JwtSigner,
 }
 
-pub async fn get_router(config: AppConfig) -> Router {
-    let state = ChatState::new(config).await;
-
+pub async fn get_router(state: ChatState) -> Router {
     let chat = Router::new()
         .route(
             "/:id",
@@ -115,7 +113,7 @@ pub(crate) async fn index_handler() -> impl IntoResponse {
     "Hello, World!"
 }
 
-#[cfg(test)]
+#[cfg(feature = "test-util")]
 mod test_util {
     use sqlx::Executor;
     use sqlx_db_tester::TestPg;
@@ -123,7 +121,8 @@ mod test_util {
     use super::*;
 
     impl ChatState {
-        pub async fn new_for_test(config: AppConfig) -> (Self, TestPg) {
+        pub async fn new_for_test() -> (Self, TestPg) {
+            let config = AppConfig::load().expect("Failed to load config");
             let server_url = config.db_url.rsplitn(2, '/').collect::<Vec<_>>();
             let server_url = server_url[1].to_string();
             eprintln!("server_url: {}", server_url);

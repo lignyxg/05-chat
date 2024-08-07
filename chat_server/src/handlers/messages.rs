@@ -2,6 +2,7 @@ use std::mem;
 use std::str::FromStr;
 
 use axum::extract::{Path, Query, State};
+use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::{Extension, Json};
 use serde_json::json;
@@ -55,7 +56,7 @@ pub(crate) async fn send_message_handler(
     let _message = Messages::create(create_message, user.id, id, &state.pool).await?;
 
     let ret = json!({"non_exists_file": non_exists_file});
-    Ok(Json(ret))
+    Ok((StatusCode::CREATED, Json(ret)))
 }
 
 pub(crate) async fn list_messages_handler(

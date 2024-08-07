@@ -26,6 +26,7 @@ pub struct Chat {
     pub ws_id: i64,
     pub owner_id: Option<i64>,
     #[sqlx(rename = "type")]
+    #[serde(rename = "type")]
     pub typ: ChatType,
     pub name: Option<String>,
     pub members: Vec<i64>,

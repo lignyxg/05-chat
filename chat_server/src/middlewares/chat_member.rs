@@ -66,8 +66,6 @@ mod tests {
     // use crate::test_util::prepare_test_data;
     use chat_core::middlewares::jwt::jwt_verify;
 
-    use crate::AppConfig;
-
     use super::*;
 
     async fn handler() -> impl IntoResponse {
@@ -76,7 +74,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_chat_member_middleware() -> anyhow::Result<()> {
-        let (state, tdb) = ChatState::new_for_test(AppConfig::load()?).await;
+        let (state, tdb) = ChatState::new_for_test().await;
         let pool = tdb.get_pool().await;
         // prepare_test_data(&pool).await;
 

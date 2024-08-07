@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use axum::extract::{Multipart, Path, State};
 use axum::http::header::CONTENT_TYPE;
-use axum::http::HeaderMap;
+use axum::http::{HeaderMap, StatusCode};
 use axum::response::IntoResponse;
 use axum::{Extension, Json};
 use tokio::fs;
@@ -31,7 +31,7 @@ pub(crate) async fn upload_file_handler(
         let url = chat_file.hash_to_path(ws_id);
         urls.push(url);
     }
-    Ok(Json(urls))
+    Ok((StatusCode::CREATED, Json(urls)))
 }
 
 pub(crate) async fn download_file_handler(

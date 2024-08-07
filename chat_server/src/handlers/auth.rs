@@ -50,8 +50,6 @@ mod tests {
 
     use chat_core::utils::jwt::JwtSigner;
 
-    use crate::AppConfig;
-
     use super::*;
 
     #[tokio::test]
@@ -75,7 +73,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_signup_handler() -> Result<()> {
-        let (state, _tdb) = ChatState::new_for_test(AppConfig::load().unwrap()).await;
+        let (state, _tdb) = ChatState::new_for_test().await;
         let create_user = CreateUser {
             ws_name: "test_ws".to_string(),
             fullname: "lign".to_string(),
@@ -94,7 +92,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_signin_handler() {
-        let (state, _tdb) = ChatState::new_for_test(AppConfig::load().unwrap()).await;
+        let (state, _tdb) = ChatState::new_for_test().await;
         let create_user = CreateUser {
             ws_name: "test_ws".to_string(),
             fullname: "lign".to_string(),
