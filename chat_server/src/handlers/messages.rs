@@ -59,6 +59,20 @@ pub(crate) async fn send_message_handler(
     Ok((StatusCode::CREATED, Json(ret)))
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/chat/{id}/messages",
+    params(
+        ("id" = i64, Path, description = "chat id"),
+        ListMessages
+    ),
+    responses(
+        (status = 200, description = "Create a new workspace", body = Workspace)
+    ),
+    security(
+        ("token" = [])
+    )
+)]
 pub(crate) async fn list_messages_handler(
     State(state): State<ChatState>,
     Path(id): Path<i64>,

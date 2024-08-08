@@ -31,6 +31,10 @@ sha1 = "0.10.6"
 tokio-util = "0.7.11"
 mime_guess = "2.0.5"
 chat_core = { workspace = true }
+utoipa = { workspace = true }
+utoipa-swagger-ui = { workspace = true }
+utoipa-rapidoc = { workspace = true }
+utoipa-redoc = { workspace = true }
 
 [dev-dependencies]
 chat_server = { workspace = true, features = ["test-util"] }

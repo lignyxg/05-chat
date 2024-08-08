@@ -1,13 +1,14 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
+use utoipa::{IntoParams, ToSchema};
 
 mod chat;
 mod message;
 mod users;
 mod workspace;
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, PartialEq, ToSchema)]
 pub struct User {
     pub id: i64,
     pub ws_id: i64,
@@ -20,7 +21,7 @@ pub struct User {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, FromRow, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, FromRow, PartialEq, ToSchema)]
 pub struct Chat {
     pub id: i64,
     pub ws_id: i64,
@@ -34,7 +35,7 @@ pub struct Chat {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, PartialOrd, sqlx::Type, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, PartialOrd, sqlx::Type, Clone, ToSchema)]
 #[sqlx(type_name = "chat_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum ChatType {
@@ -44,7 +45,7 @@ pub enum ChatType {
     PublicChannel,
 }
 
-#[derive(Debug, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Serialize, Deserialize, FromRow, ToSchema)]
 pub struct Messages {
     pub id: i64,
     pub chat_id: i64,
@@ -54,13 +55,13 @@ pub struct Messages {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, IntoParams, ToSchema)]
 pub struct ListMessages {
     pub last_id: Option<i64>,
     pub limit: i64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, ToSchema)]
 pub struct Workspace {
     pub id: i64,
     pub name: String,
@@ -69,7 +70,7 @@ pub struct Workspace {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct CreateUser {
     pub ws_name: String,
     pub fullname: String,
@@ -77,19 +78,19 @@ pub struct CreateUser {
     pub password: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct SigninUser {
     pub email: String,
     pub password: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct CreateWorkspace {
     pub name: String,
     pub owner_id: i64,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
 pub struct CreateChat {
     pub name: Option<String>,
     pub members: Vec<i64>,
@@ -97,7 +98,7 @@ pub struct CreateChat {
     pub is_public: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct CreateMessage {
     pub content: String,
     #[serde(default)]

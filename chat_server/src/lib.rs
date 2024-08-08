@@ -17,12 +17,14 @@ use handlers::*;
 
 use crate::error::AppError;
 use crate::middlewares::{verify_chat_member, with_middleware};
+use crate::openapi::OpenApiRouter;
 
 mod config;
 mod error;
 mod handlers;
 mod middlewares;
 pub mod models;
+pub mod openapi;
 
 #[derive(Debug, Clone)]
 pub struct ChatState {
@@ -61,6 +63,7 @@ pub async fn get_router(state: ChatState) -> Router {
         .route("/signin", post(signin_handler));
 
     let router = Router::new()
+        .add_openapi()
         .route("/", get(index_handler))
         .nest("/api", api)
         .with_state(state);
